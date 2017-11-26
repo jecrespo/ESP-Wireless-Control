@@ -2,10 +2,12 @@
 #include <Timer.h>
 #include <dht.h>
 
-#define DHT22_PIN D5
+#define DHT22_PIN D4
 
 const char* ssid     = "ESP32ap";
 const char* password = "ESP32wifi";
+
+IPAddress server(192, 168, 4, 1);
 
 IPAddress ip;
 Timer t;
@@ -45,18 +47,23 @@ void loop() {
 void sendTemperature() {
   Serial.println("Reading sensor...");
   float temp;
-  int chk = DHT.read22(DHT22_PIN);
+  int chk = DHT.read11(DHT22_PIN);
   if (chk == DHTLIB_OK) {
     temp = DHT.temperature;
+    Serial.println("Temperatura: " + String(temp));
+  }
+  else {
+    Serial.println("Error sonda. No se envian datos");
+    return;
   }
 
   Serial.print("connecting to ");
-  Serial.println(ip);
+  Serial.println(server);
 
   // Use WiFiClient class to create TCP connections
   WiFiClient client;
   const int httpPort = 80;
-  if (!client.connect(ip, httpPort)) {
+  if (!client.connect(server, httpPort)) {
     Serial.println("connection failed");
     return;
   }
@@ -71,7 +78,7 @@ void sendTemperature() {
 
   // This will send the request to the server
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-               "Host: " + String(ip) + "\r\n" +
+               "Host: " + String(server) + "\r\n" +
                "Connection: close\r\n\r\n");
   unsigned long timeout = millis();
   while (client.available() == 0) {
